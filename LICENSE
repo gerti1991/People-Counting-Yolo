@@ -1,0 +1,77 @@
+MIT License
+
+Copyright (c) 2025 People Counting System Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+## Third-Party Licenses
+
+This project uses several third-party libraries and models:
+
+### YOLOv9 Model
+- **License**: GPL-3.0
+- **Source**: Ultralytics (https://github.com/ultralytics/ultralytics)
+- **Usage**: Object detection and people counting
+
+### OpenCV
+- **License**: Apache 2.0
+- **Source**: OpenCV Foundation (https://opencv.org/)
+- **Usage**: Computer vision operations
+
+### Streamlit
+- **License**: Apache 2.0
+- **Source**: Streamlit Inc. (https://streamlit.io/)
+- **Usage**: Web application framework
+
+### PyTorch
+- **License**: BSD-3-Clause
+- **Source**: PyTorch Team (https://pytorch.org/)
+- **Usage**: Deep learning framework
+
+### Face Recognition Library
+- **License**: MIT
+- **Source**: Adam Geitgey (https://github.com/ageitgey/face_recognition)
+- **Usage**: Face detection and recognition (optional feature)
+
+### dlib
+- **License**: Boost Software License
+- **Source**: Davis King (http://dlib.net/)
+- **Usage**: Machine learning algorithms for face recognition
+
+### NumPy
+- **License**: BSD-3-Clause
+- **Source**: NumPy Developers (https://numpy.org/)
+- **Usage**: Numerical computing
+
+### Other Dependencies
+All other dependencies listed in requirements.txt are used under their respective licenses. Please refer to their individual license files for more information.
+
+## Model Attribution
+
+The YOLOv9 model used in this project is provided by Ultralytics and is subject to their licensing terms. The model weights are downloaded automatically and are used for non-commercial purposes in accordance with their license.
+
+## Data Privacy
+
+This software processes video and image data locally on the user's machine. No data is transmitted to external servers unless explicitly configured by the user. Users are responsible for ensuring compliance with local privacy laws and regulations when using this software.
+
+## Disclaimer
+
+This software is provided for educational and research purposes. Users are responsible for ensuring compliance with all applicable laws and regulations, including but not limited to privacy laws, when using this software in production environments.

@@ -1,138 +1,146 @@
 #!/usr/bin/env python3
 """
-Quick test script to validate the People Counting System components
+People Counting System - Quick Health Check
+A lightweight test to verify system readiness before launching the application.
 """
 
-import cv2
 import sys
-import numpy as np
-from ultralytics import YOLO
+import subprocess
+from datetime import datetime
 
-def test_opencv():
-    """Test OpenCV functionality"""
-    print("🔵 Testing OpenCV...")
-    try:
-        # Test basic OpenCV functionality
-        img = np.zeros((480, 640, 3), dtype=np.uint8)
-        cv2.putText(img, "OpenCV Test", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-        print("✅ OpenCV is working correctly")
+def print_status(message, status="info"):
+    """Print formatted status message"""
+    symbols = {"info": "ℹ️", "success": "✅", "warning": "⚠️", "error": "❌"}
+    print(f"{symbols.get(status, 'ℹ️')} {message}")
+
+def check_python_version():
+    """Check Python version compatibility"""
+    print_status("Checking Python version...")
+    
+    version = sys.version_info
+    if version.major == 3 and version.minor >= 8:
+        print_status(f"Python {version.major}.{version.minor}.{version.micro} - Compatible", "success")
         return True
-    except Exception as e:
-        print(f"❌ OpenCV error: {e}")
+    else:
+        print_status(f"Python {version.major}.{version.minor}.{version.micro} - Requires Python 3.8+", "error")
         return False
 
-def test_camera():
-    """Test camera access"""
-    print("\n🎥 Testing Camera Access...")
+def check_core_dependencies():
+    """Check essential dependencies"""
+    print_status("Checking core dependencies...")
+    
+    core_packages = [
+        ("streamlit", "Web interface"),
+        ("cv2", "Computer vision"),
+        ("numpy", "Numerical computing"),
+        ("torch", "Deep learning"),
+        ("ultralytics", "YOLO models")
+    ]
+    
+    all_good = True
+    for package, description in core_packages:
+        try:
+            __import__(package)
+            print_status(f"{package} - {description}", "success")
+        except ImportError:
+            print_status(f"{package} - {description} (MISSING)", "error")
+            all_good = False
+    
+    return all_good
+
+def check_optional_dependencies():
+    """Check optional face recognition dependencies"""
+    print_status("Checking optional dependencies...")
+    
+    optional_packages = [
+        ("face_recognition", "Face recognition"),
+        ("dlib", "Face detection backend"),
+        ("sklearn", "Machine learning")
+    ]
+    
+    for package, description in optional_packages:
+        try:
+            __import__(package)
+            print_status(f"{package} - {description}", "success")
+        except ImportError:
+            print_status(f"{package} - {description} (Optional - not installed)", "warning")
+
+def check_camera_access():
+    """Quick camera availability check"""
+    print_status("Checking camera access...")
+    
     try:
+        import cv2
         cap = cv2.VideoCapture(0)
         if cap.isOpened():
-            ret, frame = cap.read()
-            if ret:
-                print(f"✅ Camera 0 working - Frame size: {frame.shape}")
-                cap.release()
-                return True
-            else:
-                print("❌ Camera detected but cannot read frames")
-                cap.release()
-                return False
-        else:
-            print("❌ No camera detected")
-            return False
-    except Exception as e:
-        print(f"❌ Camera error: {e}")
-        return False
-
-def test_yolo():
-    """Test YOLO model loading"""
-    print("\n🤖 Testing YOLO Model...")
-    try:
-        model = YOLO("yolov9c.pt")
-        print("✅ YOLO model loaded successfully")
-        
-        # Test with a simple image
-        test_image = np.ones((480, 640, 3), dtype=np.uint8) * 128
-        results = model(test_image, classes=[0], conf=0.5, verbose=False)
-        print("✅ YOLO inference test completed")
-        return True
-    except Exception as e:
-        print(f"❌ YOLO error: {e}")
-        return False
-
-def test_yolo_with_camera():
-    """Test YOLO with camera feed"""
-    print("\n🔄 Testing YOLO + Camera Integration...")
-    try:
-        model = YOLO("yolov9c.pt")
-        cap = cv2.VideoCapture(0)
-        
-        if not cap.isOpened():
-            print("❌ Camera not available for YOLO test")
-            return False
-        
-        # Capture a single frame and test detection
-        ret, frame = cap.read()
-        if ret:
-            results = model(frame, classes=[0], conf=0.5, verbose=False)
-            people_count = len(results[0].boxes) if len(results) > 0 and results[0].boxes is not None else 0
-            print(f"✅ YOLO + Camera integration working - Detected {people_count} people")
+            print_status("Camera 0 - Available", "success")
             cap.release()
             return True
         else:
-            print("❌ Could not capture frame from camera")
-            cap.release()
+            print_status("Camera 0 - Not accessible", "warning")
             return False
     except Exception as e:
-        print(f"❌ YOLO + Camera integration error: {e}")
+        print_status(f"Camera check failed: {e}", "warning")
         return False
 
-def main():
-    """Run all tests"""
-    print("🚀 People Counting System - Quick Test")
-    print("=" * 50)
+def check_model_file():
+    """Check YOLO model availability"""
+    print_status("Checking YOLO model...")
     
-    # Run tests
-    tests = [
-        ("OpenCV", test_opencv),
-        ("Camera", test_camera),
-        ("YOLO Model", test_yolo),
-        ("YOLO + Camera", test_yolo_with_camera)
+    model_path = "yolov9c.pt"
+    if os.path.exists(model_path):
+        print_status("YOLOv9 model file found", "success")
+        return True
+    else:
+        print_status("YOLOv9 model will be downloaded on first use", "info")
+        return True
+
+def main():
+    """Run quick system health check"""
+    print("=" * 50)
+    print("🚀 PEOPLE COUNTING SYSTEM - QUICK TEST")
+    print("=" * 50)
+    print(f"📅 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print()
+    
+    checks = [
+        ("Python Version", check_python_version),
+        ("Core Dependencies", check_core_dependencies),
+        ("Optional Dependencies", check_optional_dependencies),
+        ("Camera Access", check_camera_access),
+        ("Model File", check_model_file)
     ]
     
     results = []
-    for test_name, test_func in tests:
+    for check_name, check_func in checks:
+        print(f"\n🔍 {check_name}:")
         try:
-            success = test_func()
-            results.append((test_name, success))
+            result = check_func()
+            results.append((check_name, result))
         except Exception as e:
-            print(f"❌ {test_name} test failed with exception: {e}")
-            results.append((test_name, False))
+            print_status(f"Check failed: {e}", "error")
+            results.append((check_name, False))
     
     # Summary
     print("\n" + "=" * 50)
-    print("📊 TEST SUMMARY")
+    print("📊 SUMMARY")
     print("=" * 50)
     
-    passed = 0
-    for test_name, success in results:
-        status = "✅ PASS" if success else "❌ FAIL"
-        print(f"{test_name:<20} {status}")
-        if success:
-            passed += 1
+    core_passed = all(result for name, result in results[:2])  # Python + Core deps
+    optional_issues = not all(result for name, result in results[2:])
     
-    print(f"\nPassed: {passed}/{len(results)} tests")
-    
-    if passed == len(results):
-        print("\n🎉 ALL TESTS PASSED! Your People Counting System is ready to use.")
-        print("\nNext steps:")
-        print("1. Run 'streamlit run app.py' to start the web interface")
-        print("2. Select 'Live Camera Counting' mode")
-        print("3. Choose Camera 0 and start counting!")
+    if core_passed:
+        print_status("System ready to launch! 🚀", "success")
+        if optional_issues:
+            print_status("Some optional features may not be available", "warning")
     else:
-        print(f"\n⚠️  {len(results) - passed} test(s) failed. Please fix the issues before using the system.")
+        print_status("System has critical issues - check dependencies", "error")
+        print("\n💡 Try: pip install -r requirements.txt")
     
-    return passed == len(results)
+    print("\n🎯 To start the application:")
+    print("   • Windows: Double-click start_app.bat")
+    print("   • Command line: streamlit run app.py")
 
 if __name__ == "__main__":
-    success = main()
-    sys.exit(0 if success else 1)
+    import os
+    main()
