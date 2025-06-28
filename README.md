@@ -4,7 +4,7 @@
 ![YOLO](https://img.shields.io/badge/YOLO-v9-green.svg)
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.40+-red.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
-![Version](https://img.shields.io/badge/Version-2.0.0-brightgreen.svg)
+![Version](https://img.shields.io/badge/Version-2.1.0-brightgreen.svg)
 
 > **🚀 Production-ready AI-powered people counting system using YOLOv9 and Streamlit**  
 > *Clean • Documented • Reusable • Future-proof*
@@ -17,7 +17,8 @@
 - **🎥 Real-time Camera Counting** - Live people detection with unique person tracking
 - **📹 Video File Processing** - Upload and analyze videos with smart tracking
 - **🎯 Unique Person Tracking** - Advanced algorithm prevents double counting
-- **📊 Comprehensive Analytics** - Detailed statistics and visual overlays
+- **� Custom Counting Areas** - Define specific zones for targeted counting
+- **�📊 Comprehensive Analytics** - Detailed statistics and visual overlays
 - **🌐 Universal Camera Support** - USB, IP, RTSP cameras via .env config
 
 ### 👤 Face Recognition *(Optional)*
@@ -81,10 +82,12 @@ streamlit run app.py
 
 ### Live Camera
 - **Real-time counting** with unique person tracking
+- **Custom counting areas** - Define specific zones to monitor
 - **Adjustable sensitivity** for different environments
 - **Live metrics** including FPS and performance stats
 - **Snapshot capture** with timestamp and count data
 - **Multi-camera support** (USB, IP, RTSP)
+- **Area setup tools** - Easy coordinate-based area definition
 
 ---
 
@@ -157,7 +160,33 @@ Tests verify: dependencies, camera access, model loading, and functionality.
 
 ---
 
-## 🔧 Configuration
+## � Custom Counting Areas
+
+### Setup Custom Areas
+1. **Enable Custom Area** - Check "🎯 Enable Custom Counting Area"
+2. **Enter Setup Mode** - Check "✏️ Area Setup Mode" 
+3. **Define Coordinates** - Use the coordinate inputs to set your area
+4. **Use Presets** - Or choose from quick preset areas (Center, Entrance, Bottom Half)
+5. **Start Counting** - Only people in the defined area will be counted
+
+### Area Features
+- **Visual Feedback** - Green rectangle shows the counting area on video
+- **Real-time Display** - See people inside (green boxes) vs outside (red boxes) the area  
+- **Preset Options** - Quick setup for common monitoring scenarios
+- **Coordinate Control** - Precise area definition with X1,Y1 to X2,Y2 coordinates
+- **Area Status** - Live display of people count specifically in the counting zone
+- **Clear Area** - Easy removal of counting area to return to full-frame counting
+
+### Use Cases for Custom Areas
+- **🚪 Entrance Monitoring** - Count only people entering/exiting doorways
+- **🏪 Zone Specific** - Monitor specific areas like checkout lines or waiting areas  
+- **🔒 Privacy Protection** - Exclude private areas from counting
+- **🎯 Accuracy Improvement** - Focus on relevant areas to reduce false positives
+- **📊 Business Analytics** - Monitor foot traffic in specific store sections
+
+---
+
+## �🔧 Configuration
 
 ### Camera Setup
 Create `.env` file from `.env.example`:

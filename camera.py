@@ -10,6 +10,103 @@ from models.model import model
 # Load environment variables
 load_dotenv()
 
+def point_in_polygon(point, polygon):
+    """Check if a point is inside a polygon using ray casting algorithm"""
+    x, y = point
+    n = len(polygon)
+    inside = False
+    
+    p1x, p1y = polygon[0]
+    for i in range(1, n + 1):
+        p2x, p2y = polygon[i % n]
+        if y > min(p1y, p2y):
+            if y <= max(p1y, p2y):
+                if x <= max(p1x, p2x):
+                    if p1y != p2y:
+                        xinters = (y - p1y) * (p2x - p1x) / (p2y - p1y) + p1x
+                    if p1x == p2x or x <= xinters:
+                        inside = not inside
+        p1x, p1y = p2x, p2y
+    
+    return inside
+
+def is_person_in_area(person_bbox, counting_area):
+    """Check if a person's center point is within the counting area"""
+    if counting_area is None:
+        return True  # If no area defined, count everywhere
+    
+    # Get person center point
+    x1, y1, x2, y2 = person_bbox
+    center_x = (x1 + x2) / 2
+    center_y = (y1 + y2) / 2
+    
+    # Check if center point is within the rectangular area
+    area_x1, area_y1, area_x2, area_y2 = counting_area
+    return (area_x1 <= center_x <= area_x2 and area_y1 <= center_y <= area_y2)
+
+def draw_counting_area(frame, counting_area, setup_mode=False):
+    """Draw the counting area on the frame"""
+    if counting_area is None:
+        return frame
+    
+    area_x1, area_y1, area_x2, area_y2 = counting_area
+    
+    # Convert to integers
+    x1, y1, x2, y2 = int(area_x1), int(area_y1), int(area_x2), int(area_y2)
+    
+    # Draw rectangle
+    if setup_mode:
+        # Bright green for setup mode
+        color = (0, 255, 0)
+        thickness = 3
+    else:
+        # Semi-transparent green for normal mode
+        color = (0, 200, 0)
+        thickness = 2
+    
+    cv2.rectangle(frame, (x1, y1), (x2, y2), color, thickness)
+    
+    # Add text label
+    label = "COUNTING AREA"
+    label_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)[0]
+    
+    # Background for text
+    cv2.rectangle(frame, (x1, y1 - label_size[1] - 10), 
+                  (x1 + label_size[0] + 10, y1), color, -1)
+    
+    # Text
+    cv2.putText(frame, label, (x1 + 5, y1 - 5), 
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+    
+    return frame
+
+def create_area_from_clicks(click_data, frame_shape):
+    """Create a rectangular area from click coordinates"""
+    if not click_data or len(click_data) < 2:
+        return None
+    
+    # Get the first and last points to create a rectangle
+    start_point = click_data[0]
+    end_point = click_data[-1]
+    
+    x1 = min(start_point['x'], end_point['x'])
+    y1 = min(start_point['y'], end_point['y']) 
+    x2 = max(start_point['x'], end_point['x'])
+    y2 = max(start_point['y'], end_point['y'])
+    
+    # Ensure coordinates are within frame bounds
+    height, width = frame_shape[:2]
+    x1 = max(0, min(x1, width))
+    y1 = max(0, min(y1, height))
+    x2 = max(0, min(x2, width))
+    y2 = max(0, min(y2, height))
+    
+    # Ensure minimum area size
+    if abs(x2 - x1) < 50 or abs(y2 - y1) < 50:
+        return None
+    
+    return (x1, y1, x2, y2)
+
 def get_camera_sources():
     """Get all available camera sources from environment variables"""
     camera_sources = {}
@@ -111,10 +208,10 @@ def initialize_camera(source, timeout=10):
         return None, f"Camera initialization error: {str(e)}"
 
 def run_live_counter():
-    """Enhanced live camera counting with flexible camera sources"""
+    """Enhanced live camera counting with flexible camera sources and area selection"""
     
     st.header("🎥 Live Camera - Universal Camera Support")
-    st.markdown("Real-time people counting with **unique person tracking** - supports USB, IP, RTSP, Phone cameras and more!")
+    st.markdown("Real-time people counting with **unique person tracking** and **custom counting areas** - supports USB, IP, RTSP, Phone cameras and more!")
     
     # Camera source selection
     st.subheader("📷 Camera Source Selection")
@@ -191,8 +288,7 @@ def run_live_counter():
                         selected_camera_name = f"⚙️ Manual: {manual_source}"
                     else:
                         st.error("❌ Cannot access manual camera source.")
-    
-    # Camera settings
+      # Camera settings
     st.subheader("⚙️ Detection Settings")
     
     col1, col2, col3 = st.columns(3)
@@ -221,6 +317,100 @@ def run_live_counter():
             help="Timeout for camera connection (seconds)"
         )
     
+    # Area Selection Feature
+    st.subheader("📐 Counting Area Selection")
+    
+    # Area selection options
+    area_col1, area_col2, area_col3 = st.columns([2, 2, 2])
+    
+    with area_col1:
+        use_custom_area = st.checkbox(
+            "🎯 Enable Custom Counting Area",
+            value=False,
+            help="Count people only in a selected area instead of the entire frame"
+        )
+    
+    with area_col2:
+        if use_custom_area:
+            area_setup_mode = st.checkbox(
+                "✏️ Area Setup Mode",
+                value=False,
+                help="Click this to draw/modify your counting area"
+            )
+        else:
+            area_setup_mode = False
+    
+    with area_col3:
+        if use_custom_area:
+            if st.button("🗑️ Clear Area", help="Remove the current counting area"):
+                if 'counting_area' in st.session_state:
+                    del st.session_state.counting_area
+                st.success("Counting area cleared!")
+      # Area instructions
+    if use_custom_area and area_setup_mode:
+        st.info("""
+        **📋 Area Setup Instructions:**
+        1. Start the camera first to see the video feed
+        2. Use the coordinate inputs below to define your counting area
+        3. The area will be highlighted in **green** on the video
+        4. Only people whose center point falls within this area will be counted
+        5. Uncheck "Area Setup Mode" when done to hide the setup tools
+        """)
+        
+        # Manual coordinate input for area selection
+        st.subheader("📐 Manual Area Coordinates")
+        area_input_col1, area_input_col2 = st.columns(2)
+        
+        with area_input_col1:
+            st.write("**Top-Left Corner:**")
+            x1_input = st.number_input("X1 (Left)", min_value=0, max_value=1920, value=100, step=10)
+            y1_input = st.number_input("Y1 (Top)", min_value=0, max_value=1080, value=100, step=10)
+        
+        with area_input_col2:
+            st.write("**Bottom-Right Corner:**")
+            x2_input = st.number_input("X2 (Right)", min_value=0, max_value=1920, value=500, step=10)
+            y2_input = st.number_input("Y2 (Bottom)", min_value=0, max_value=1080, value=400, step=10)
+        
+        # Set area button
+        if st.button("✅ Set Counting Area", type="primary"):
+            if x2_input > x1_input and y2_input > y1_input:
+                st.session_state.counting_area = (x1_input, y1_input, x2_input, y2_input)
+                st.success(f"✅ Counting area set: ({x1_input}, {y1_input}) to ({x2_input}, {y2_input})")
+            else:
+                st.error("❌ Invalid coordinates! Bottom-right must be greater than top-left.")
+        
+        # Preset areas
+        st.write("**Quick Presets:**")
+        preset_col1, preset_col2, preset_col3 = st.columns(3)
+        
+        with preset_col1:
+            if st.button("🏪 Center Area", help="Center portion of the frame"):
+                st.session_state.counting_area = (200, 150, 440, 330)
+                st.success("Center area selected!")
+        
+        with preset_col2:
+            if st.button("🚪 Entrance Area", help="Top-center for entrance monitoring"):
+                st.session_state.counting_area = (150, 50, 490, 200)
+                st.success("Entrance area selected!")
+        
+        with preset_col3:
+            if st.button("📐 Bottom Half", help="Lower half of the frame"):
+                st.session_state.counting_area = (50, 240, 590, 430)
+                st.success("Bottom half selected!")
+    
+    elif use_custom_area and not area_setup_mode:
+        if st.session_state.counting_area:
+            x1, y1, x2, y2 = st.session_state.counting_area
+            st.success(f"🎯 Counting area active: ({int(x1)}, {int(y1)}) to ({int(x2)}, {int(y2)})")
+        else:
+            st.warning("⚠️ No counting area set. Enable 'Area Setup Mode' to configure.")
+    
+    # Initialize area selection state
+    if 'counting_area' not in st.session_state:
+        st.session_state.counting_area = None
+    if 'area_points' not in st.session_state:
+        st.session_state.area_points = []
+
     # Control buttons
     st.subheader("🎮 Camera Controls")
     col1, col2, col3, col4 = st.columns(4)
@@ -280,14 +470,13 @@ def run_live_counter():
     
     # Video display and status
     video_placeholder = st.empty()
-    status_placeholder = st.empty()
-      # Run camera if active
+    status_placeholder = st.empty()    # Run camera if active
     if st.session_state.camera_running:
         run_unique_tracking_camera(
             selected_camera, selected_camera_name, confidence, tracking_distance,
             video_placeholder, status_placeholder,
             unique_metric, current_metric, max_metric, fps_metric,
-            screenshot_button, camera_timeout
+            screenshot_button, camera_timeout, use_custom_area, area_setup_mode
         )
 
 def calculate_distance(point1, point2):
@@ -311,8 +500,8 @@ def cleanup_old_tracks(tracked_people, current_frame, max_gap=150):
 def run_unique_tracking_camera(camera_source, camera_name, confidence, tracking_distance, 
                               video_placeholder, status_placeholder,
                               unique_metric, current_metric, max_metric, fps_metric,
-                              screenshot_button, timeout=10):
-    """Run camera with unique person tracking and enhanced source support"""
+                              screenshot_button, timeout=10, use_custom_area=False, area_setup_mode=False):
+    """Run camera with unique person tracking, enhanced source support, and area selection"""
     
     # Initialize camera with enhanced error handling
     cap, error_msg = initialize_camera(camera_source, timeout)
@@ -348,20 +537,21 @@ def run_unique_tracking_camera(camera_source, camera_name, confidence, tracking_
         # Calculate FPS
         elapsed_time = time.time() - start_time
         fps = frame_count / elapsed_time if elapsed_time > 0 else 0
-        
-        # Run YOLO detection
+          # Run YOLO detection
         results = model(frame, classes=[0], conf=confidence, verbose=False)
+        
+        # Draw counting area if enabled
+        if use_custom_area and st.session_state.counting_area:
+            frame = draw_counting_area(frame, st.session_state.counting_area, area_setup_mode)
         
         current_people_count = 0
         current_centroids = []
+        people_in_area_count = 0
         
         # Process detections
         for result in results:
             if result.boxes is not None:
                 for box in result.boxes:
-                    current_people_count += 1
-                    st.session_state.total_detections += 1
-                    
                     x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
                     conf = box.conf[0].cpu().numpy()
                     
@@ -369,18 +559,39 @@ def run_unique_tracking_camera(camera_source, camera_name, confidence, tracking_
                     centroid_x = int((x1 + x2) / 2)
                     centroid_y = int((y1 + y2) / 2)
                     centroid = (centroid_x, centroid_y)
-                    current_centroids.append(centroid)
                     
-                    # Draw bounding box
-                    cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
+                    # Check if person is in counting area (if area is enabled)
+                    in_counting_area = True
+                    if use_custom_area and st.session_state.counting_area:
+                        bbox = (x1, y1, x2, y2)
+                        in_counting_area = is_person_in_area(bbox, st.session_state.counting_area)
                     
-                    # Draw centroid
-                    cv2.circle(frame, centroid, 5, (255, 0, 0), -1)
+                    # Only count and track people in the counting area
+                    if in_counting_area:
+                        current_people_count += 1
+                        people_in_area_count += 1
+                        st.session_state.total_detections += 1
+                        current_centroids.append(centroid)
+                        
+                        # Draw bounding box (green for people in area)
+                        cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
+                        
+                        # Add confidence label
+                        label = f"Person: {conf:.2f}"
+                        cv2.putText(frame, label, (int(x1), int(y1) - 10),
+                                   cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+                    else:
+                        # Draw bounding box (red for people outside area)
+                        cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 0, 255), 1)
+                        
+                        # Add label for excluded people
+                        label = f"Outside area: {conf:.2f}"
+                        cv2.putText(frame, label, (int(x1), int(y1) - 10),
+                                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
                     
-                    # Add confidence label
-                    label = f"Person: {conf:.2f}"
-                    cv2.putText(frame, label, (int(x1), int(y1) - 10),
-                               cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+                    # Draw centroid (blue for in area, red for outside)
+                    color = (255, 0, 0) if in_counting_area else (0, 0, 255)
+                    cv2.circle(frame, centroid, 5, color, -1)
         
         # Track unique people
         for centroid in current_centroids:
@@ -403,10 +614,9 @@ def run_unique_tracking_camera(camera_source, camera_name, confidence, tracking_
         
         # Update statistics
         st.session_state.max_people_in_frame = max(st.session_state.max_people_in_frame, current_people_count)
-        
-        # Add overlay information
-        overlay_height = 140
-        cv2.rectangle(frame, (10, 10), (400, overlay_height), (0, 0, 0), -1)
+          # Add overlay information
+        overlay_height = 170 if use_custom_area else 140
+        cv2.rectangle(frame, (10, 10), (500, overlay_height), (0, 0, 0), -1)
         
         # Display statistics on frame
         cv2.putText(frame, f"Current people: {current_people_count}", (20, 35),
@@ -418,18 +628,35 @@ def run_unique_tracking_camera(camera_source, camera_name, confidence, tracking_
         cv2.putText(frame, f"FPS: {fps:.1f}", (20, 125),
                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
         
+        # Add area selection info
+        if use_custom_area:
+            if st.session_state.counting_area:
+                area_text = f"Counting Area: ACTIVE ({people_in_area_count} in area)"
+                color = (0, 255, 0)
+            else:
+                area_text = "Counting Area: Click & drag to set area"
+                color = (0, 255, 255)
+            cv2.putText(frame, area_text, (20, 155),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+        
         # Draw tracking IDs for active people
         for person in st.session_state.tracked_people:
             if frame_count - person['last_seen_frame'] < 30:  # Show ID for recent people
                 cv2.putText(frame, f"ID:{person['id']}", 
                            (person['last_centroid'][0] + 10, person['last_centroid'][1] - 10),
                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 255), 2)
+          # Update metrics
+        if use_custom_area and st.session_state.counting_area:
+            unique_metric.metric("🎯 Unique in Area", st.session_state.unique_people_count, 
+                               help="Total unique individuals in counting area")
+            current_metric.metric("👥 Current in Area", current_people_count,
+                                help="People currently in counting area")
+        else:
+            unique_metric.metric("🚶‍♂️ Unique People", st.session_state.unique_people_count, 
+                               help="Total unique individuals detected")
+            current_metric.metric("👥 Current Frame", current_people_count,
+                                help="People currently visible")
         
-        # Update metrics
-        unique_metric.metric("🚶‍♂️ Unique People", st.session_state.unique_people_count, 
-                           help="Total unique individuals detected")
-        current_metric.metric("👥 Current Frame", current_people_count,
-                            help="People currently visible")
         max_metric.metric("🔝 Max in Frame", st.session_state.max_people_in_frame,
                         help="Maximum people seen simultaneously")
         fps_metric.metric("📊 FPS", f"{fps:.1f}",

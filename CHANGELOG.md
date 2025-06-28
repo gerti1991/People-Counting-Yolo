@@ -5,6 +5,29 @@ All notable changes to the People Counting System will be documented in this fil
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2025-06-27
+
+### 🆕 Added - Custom Counting Areas
+- **📐 Area Selection Feature** - Define custom rectangular areas for targeted counting
+- **🎯 Zone-Specific Monitoring** - Count people only within specified areas
+- **✏️ Setup Mode** - Interactive area definition with coordinate inputs
+- **🏪 Preset Areas** - Quick setup options (Center Area, Entrance Area, Bottom Half)
+- **👁️ Visual Feedback** - Green highlighting of counting areas on live video
+- **📊 Area-Specific Metrics** - Display counts specifically for the defined area
+- **🔧 Easy Area Management** - Clear area functionality and setup tools
+
+### 🎨 Enhanced
+- **Live Camera Interface** - Improved UI with area selection controls
+- **Detection Display** - Green boxes for people in area, red for people outside area
+- **Metrics Display** - Updated to show area-specific or full-frame counts
+- **User Experience** - Clear instructions and preset options for easy setup
+
+### 🛠️ Technical Improvements
+- **Area Detection Logic** - Efficient point-in-rectangle calculations
+- **Visual Overlays** - Professional area highlighting and status display
+- **State Management** - Proper session state handling for area configuration
+- **Error Handling** - Validation for area coordinates and setup
+
 ## [2.0.0] - 2025-06-27
 
 ### 🎉 Major Release - Complete System Refactor
